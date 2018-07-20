@@ -887,7 +887,11 @@ class JLink(object):
         return None
 
     @open_required
-    def connect(self, chip_name, speed='auto', verbose=False):
+    def script_file(self, file):
+      self.exec_command('ScriptFile = %s' % file)
+
+    @open_required
+    def connect(self, chip_name=None, speed='auto', verbose=False):
         """Connects the J-Link to its target.
 
         Args:
@@ -909,7 +913,10 @@ class JLink(object):
 
         # This is weird but is currently the only way to specify what the
         # target is to the J-Link.
-        self.exec_command('Device = %s' % chip_name)
+        # If a device name is not provided then a script file must be loaded
+        # to configure the JTAG (id, cpu type, etc).
+        if chip_name:
+          self.exec_command('Device = %s' % chip_name)
 
         # Need to select target interface speed here, so the J-Link knows what
         # speed to use to establish target communication.
@@ -931,13 +938,14 @@ class JLink(object):
 
         # Determine which device we are.  This is essential for using methods
         # like 'unlock' or 'lock'.
-        for index in range(self.num_supported_devices()):
-            device = self.supported_device(index)
-            if device.name.lower() == chip_name.lower():
-                self._device = device
-                break
-        else:
-            raise errors.JLinkException('Unsupported device was connected to.')
+        if chip_name:
+          for index in range(self.num_supported_devices()):
+              device = self.supported_device(index)
+              if device.name.lower() == chip_name.lower():
+                  self._device = device
+                  break
+          else:
+              raise errors.JLinkException('Unsupported device was connected to.')
 
         return None
 
@@ -1694,6 +1702,8 @@ class JLink(object):
         Raises:
           JLinkException: if the device fails to unlock.
         """
+        if not self._device:
+            raise errors.JLinkException('Tried to unlock an unsupported device.')
         if not unlockers.unlock(self, self._device.manufacturer):
             raise errors.JLinkException('Failed to unlock device.')
 
