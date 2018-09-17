@@ -3880,6 +3880,70 @@ class JLink(object):
 
         return ctypes.string_at(buf).decode()
 
+    @connection_required
+    def cp15_is_present(self):
+        """Read from cp15 register.
+
+        Args:
+          self (JLink): the ``JLink`` instance.
+
+        Returns:
+          True if device has CP15.
+
+        Raises:
+          JLinkException: on error.
+        """
+        res = self._dll.JLINKARM_CP15_IsPresent()
+        if res < 0:
+            raise errors.JLinkException('Failed to determine if CP15 is present.')
+        return res == True
+
+    @connection_required
+    def cp15_read(self, crn, crm, opc1, opc2):
+        """Read from cp15 register.
+
+        Args:
+          self (JLink): the ``JLink`` instance.
+          crn (int): coprocessor register.
+          crm (int): coprocessor register.
+          opc1 (int): a 3-bit coprocessor-specific opcode.
+          opc2 (int): an optional 3-bit coprocessor-specific opcode.
+
+        Returns:
+          The value read from cp15.
+
+        Raises:
+          JLinkReadException: on error.
+        """
+        buf = ctypes.c_uint32()
+        res = self._dll.JLINKARM_CP15_ReadEx(crn, crm, opc1, opc2, ctypes.byref(buf))
+        if res < 0:
+            raise errors.JLinkReadException(res)
+        return buf.value
+
+    @connection_required
+    def cp15_write(self, crn, crm, opc1, opc2, val):
+        """Write to cp15 register.
+
+        Args:
+          self (JLink): the ``JLink`` instance.
+          crn (int): coprocessor register.
+          crm (int): coprocessor register.
+          opc1 (int): a 3-bit coprocessor-specific opcode.
+          opc2 (int): an optional 3-bit coprocessor-specific opcode.
+          val (int): the value to write to cp15
+
+        Returns:
+          None.
+
+        Raises:
+          JLinkWriteException: on error.
+        """
+        res = self._dll.JLINKARM_CP15_WriteEx(crn, crm, opc1, opc2, val)
+        if res < 0:
+            raise errors.JLinkWriteException(res)
+        return None
+
 ###############################################################################
 #
 # STRACE API
